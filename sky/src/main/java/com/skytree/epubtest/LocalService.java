@@ -9,7 +9,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Binder;
@@ -23,15 +22,9 @@ import android.util.Log;
 import com.skytree.epub.Book;
 import com.skytree.epub.BookInformation;
 import com.skytree.epub.KeyListener;
-import com.skytree.epub.SkyProvider;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -68,21 +61,6 @@ public class LocalService extends Service {
         }
     };
 
-    public static Bitmap getBitmapFromURL(String src) {
-        try {
-            URL url = new URL(src);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoInput(true);
-            connection.connect();
-            InputStream input = connection.getInputStream();
-            Bitmap myBitmap = BitmapFactory.decodeStream(input);
-            return myBitmap;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     public void debug(String msg) {
         Log.d("EPub", msg);
     }
@@ -99,7 +77,7 @@ public class LocalService extends Service {
         for (int i = 0; i < SkyApplicationHolder.bis.size(); i++) {
             BookInformation bi = SkyApplicationHolder.bis.get(i);
             if (!bi.isDownloaded) {
-                this.deleteBookByBookCode(bi.bookCode);
+                LocalServiceTool.deleteBookByBookCode(bi.bookCode);
                 this.deleteFileByDownloadId(bi.res0);
 //				this.deleteFileFromDownloads(bi.bookCode);
 //				this.resumeDownload(bi);
@@ -173,7 +151,7 @@ public class LocalService extends Service {
         return false;
     }
 
-    public void reloadBookInformations() {
+    public  void reloadBookInformations() {
         SkyApplicationHolder.reloadBookInformations();
         this.sendReload();
     }
@@ -245,7 +223,7 @@ public class LocalService extends Service {
             downloadTimer.schedule(new DownloadTask(bookCode, downloadId), 0, 100);
             reloadBookInformations();
         } catch (Exception e) {
-            deleteBook(bookCode);
+            LocalServiceTool.deleteBook(this, bookCode);
             e.printStackTrace();
         }
     }
@@ -270,7 +248,7 @@ public class LocalService extends Service {
             downloadTimer.schedule(new DownloadTask(bookCode, downloadId), 0, 250);
             reloadBookInformations();
         } catch (Exception e) {
-            deleteBook(bookCode);
+            LocalServiceTool.deleteBook(this, bookCode);
             e.printStackTrace();
         }
     }
@@ -301,7 +279,7 @@ public class LocalService extends Service {
         String baseDirectory = SkySetting.getStorageDirectory( ) + "/books";
         sendProgress(bookCode, 0, 0, 0.9f);
 
-        bi = getBookInformation(fileName, baseDirectory, coverPath);
+        bi = LocalServiceTool.getBookInformation( fileName, baseDirectory, coverPath);
 
         bi.bookCode = bookCode;
         bi.fileSize = -1;
@@ -314,40 +292,6 @@ public class LocalService extends Service {
                 reloadBookInformation(tbi.bookCode);
             }
         }, 500);
-    }
-
-    public BookInformation getBookInformation(String fileName, String baseDirectory, String coverPath) {
-        debug(fileName);
-
-        BookInformation bi = new BookInformation();
-        // SkyProvider is the default epub file handler since 5.0.
-        SkyProvider skyProvider = new SkyProvider();
-        bi = new BookInformation();
-        bi.setFileName(fileName);
-        bi.setBaseDirectory(baseDirectory);
-        bi.setContentProvider(skyProvider);
-        File coverFile = new File(coverPath);
-        if (!coverFile.exists()) bi.setCoverPath(coverPath);
-        skyProvider.setBook(bi.getBook());
-        skyProvider.setKeyListener(new KeyDelegate());
-        bi.makeInformation();
-        return bi;
-    }
-
-    public void deleteBookByBookCode(int bookCode) {
-        String targetName = SkyApplicationHolder.sd.getFileNameByBookCode(bookCode);
-        String filePath = new String(SkySetting.getStorageDirectory( ) + "/books/" + targetName);
-        String targetDir = SkyUtility.removeExtention(filePath);
-        String coverPath = SkyApplicationHolder.sd.getCoverPathByBookCode(bookCode);
-        coverPath.replace(".epub", ".jpg");
-        SkyApplicationHolder.sd.deleteRecursive(new File(targetDir));
-        filePath = new String(SkySetting.getStorageDirectory( ) + "/downloads/" + targetName);
-        SkyApplicationHolder.sd.deleteRecursive(new File(filePath));
-        SkyApplicationHolder.sd.deleteRecursive(new File(coverPath));
-        SkyApplicationHolder.sd.deleteBookByBookCode(bookCode);
-        SkyApplicationHolder.sd.deleteBookmarksByBookCode(bookCode);
-        SkyApplicationHolder.sd.deleteHighlightsByBookCode(bookCode);
-        SkyApplicationHolder.sd.deletePagingsByBookCode(bookCode);
     }
 
     public void deleteCachedByBookCode(int bookCode) {
@@ -363,15 +307,10 @@ public class LocalService extends Service {
         }
     }
 
-    public void deleteBook(int bookCode) {
-        this.deleteBookByBookCode(bookCode);
-        this.reloadBookInformations();
-    }
-
     public void deleteAllBooks() {
         for (int i = 0; i < SkyApplicationHolder.bis.size(); i++) {
             BookInformation bi = SkyApplicationHolder.bis.get(i);
-            this.deleteBookByBookCode(bi.bookCode);
+            LocalServiceTool.deleteBookByBookCode(bi.bookCode);
         }
         this.reloadBookInformations();
     }
@@ -467,69 +406,6 @@ public class LocalService extends Service {
         return false;
     }
 
-    public synchronized void installBook(String url) {
-        debug("instalBook start");
-        int bookCode = -1;
-        try {
-            if (isBookDownloaded(url)) return;
-            String extension = SkyUtility.getFileExtension(url);
-            if (!extension.contains("epub")) return;
-            String pureName = SkyUtility.getPureName(url);
-            debug("instalBook starts real");
-            bookCode = SkyApplicationHolder.sd.insertEmptyBook(url, "", "", "", 0);
-            String targetName = SkyApplicationHolder.sd.getFileNameByBookCode(bookCode);
-            copyBookToDevice(url, targetName);
-
-            BookInformation bi;
-            String coverPath = SkyApplicationHolder.sd.getCoverPathByBookCode(bookCode);
-            String baseDirectory = SkySetting.getStorageDirectory( ) + "/books";
-
-            bi = getBookInformation(targetName, baseDirectory, coverPath);
-            bi.bookCode = bookCode;
-            bi.title = pureName;
-            bi.fileSize = -1;
-            bi.downSize = -1;
-            bi.isDownloaded = true;
-            final BookInformation tbi = bi;
-            SkyApplicationHolder.sd.updateBook(bi);
-            debug("instalBook ends");
-            (new Handler()).postDelayed(new Runnable() {
-                public void run() {
-                    reloadBookInformation(tbi.bookCode);
-                }
-            }, 500);
-        } catch (Exception e) {
-            debug(e.getMessage());
-        }
-    }
-
-    public synchronized void copyBookToDevice(String filePath, String targetName) {
-        try {
-            InputStream localInputStream = null;
-
-            if (filePath.contains("asset")) {
-                String fileName = SkyUtility.getFileName(filePath);
-                localInputStream = this.getAssets().open("books/" + fileName);
-            } else {
-                localInputStream = new FileInputStream(filePath);
-            }
-            String bookDir = SkySetting.getStorageDirectory( ) + "/books";
-            String path = bookDir + "/" + targetName;
-            FileOutputStream localFileOutputStream = new FileOutputStream(path);
-            byte[] arrayOfByte = new byte[1024];
-            int offset;
-            while ((offset = localInputStream.read(arrayOfByte)) > 0) {
-                localFileOutputStream.write(arrayOfByte, 0, offset);
-            }
-            localFileOutputStream.flush();
-            localFileOutputStream.close();
-            localInputStream.close();
-        } catch (IOException localIOException) {
-            localIOException.printStackTrace();
-            return;
-        }
-    }
-
     public class LocalBinder extends Binder {
         public LocalService getService() {
             return LocalService.this;
@@ -542,7 +418,7 @@ public class LocalService extends Service {
             try {
                 String url = params[0];
                 String fileName = params[1];
-                Bitmap bmp = getBitmapFromURL(url);
+                Bitmap bmp = LocalServiceTool.getBitmapFromURL(url);
                 FileOutputStream out = new FileOutputStream(fileName);
                 bmp.compress(Bitmap.CompressFormat.PNG, 90, out);
                 out.close();
@@ -570,7 +446,7 @@ public class LocalService extends Service {
         long downloadId = -1;
         Handler cancelHandler = new Handler() {
             public void handleMessage(Message m) {
-                deleteBook(bookCode);
+                LocalServiceTool.deleteBook(LocalService.this, bookCode);
                 reloadBookInformations();
             }
         };

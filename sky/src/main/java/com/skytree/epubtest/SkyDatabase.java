@@ -483,7 +483,7 @@ public class SkyDatabase {
 
     public String getCoverPathByBookCode(int bookCode) {
         String targetName = getFileNameByBookCode(bookCode);
-        String dirName = getDirNameByBookCode(bookCode);
+//        String dirName = getDirNameByBookCode(bookCode);
         targetName = targetName.replace(".epub", ".jpg");
         String filePath = new String(SkySetting.getStorageDirectory() + "/covers/" + targetName);
         return filePath;

@@ -376,9 +376,9 @@ public class HomeActivity extends Activity {
 
     public void libraryButtonClick() {
         // when you need to install epub from file system, just use ls.installBook
-//		ls.installBook("file://android_asset/books/Alice.epub");
+//		LocalServiceTool.installBook(ls, "file://android_asset/books/Alice.epub");
         // when you have to download and install from remote server, use ls.startDownload
-        ls.startDownload("http://scs.skyepub.net/samples/Alice.epub", "", "Alice's Adventures", "Lewis Carroll");
+//        ls.startDownload("http://scs.skyepub.net/samples/Alice.epub", "", "Alice's Adventures", "Lewis Carroll");
 //        ls.startDownload("http://scs.skyepub.net/samples/Saadi.epub", "", "سعدی‎", "سعدی‎");
 //        ls.startDownload("http://scs.skyepub.net/samples/Doctor.epub", "", "시골의사 박경철의 자기혁명", "박경철");
     }
@@ -853,7 +853,7 @@ public class HomeActivity extends Activity {
             } else if (view == seeDetailsButton) {
                 openBookViewer(bi, true);
             } else if (view == deleteButton) {
-                ls.deleteBookByBookCode(bi.bookCode);
+                LocalServiceTool.deleteBookByBookCode(bi.bookCode);
                 reload();
             } else if (view == deleteCachedButton) {
                 ls.deleteCachedByBookCode(bi.bookCode);

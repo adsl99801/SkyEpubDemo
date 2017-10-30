@@ -5,12 +5,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-	<uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <!--<uses-permission android:name="android.permission.READ_PHONE_STATE" />-->
+    <!--<uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>-->
+    <!--<uses-permission android:name="android.permission.WRITE_SETTINGS" />-->
+    <!--<uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>-->
 
 
 <application
@@ -21,17 +21,17 @@
         android:hapticFeedbackEnabled="false"
         android:hardwareAccelerated="true"
          >
-        <activity
-            android:name="com.skytree.epubtest.MainActivity"
-            android:configChanges="keyboardHidden|orientation|keyboard|screenSize|locale"
-            android:label="@string/app_name"
-            android:theme="@android:style/Theme.NoTitleBar" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+        <!--<activity-->
+            <!--android:name="com.skytree.epubtest.MainActivity"-->
+            <!--android:configChanges="keyboardHidden|orientation|keyboard|screenSize|locale"-->
+            <!--android:label="@string/app_name"-->
+            <!--android:theme="@android:style/Theme.NoTitleBar" >-->
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.MAIN" />-->
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+                <!--<category android:name="android.intent.category.LAUNCHER" />-->
+            <!--</intent-filter>-->
+        <!--</activity>-->
     <activity
         android:name="com.skytree.epubtest.HomeActivity"
         android:configChanges="keyboardHidden|orientation|keyboard|screenSize|locale"
